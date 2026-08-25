@@ -422,7 +422,7 @@ class _CartScreenState extends State<CartScreen> {
         onPressed: () {},
 
         style: ElevatedButton.styleFrom(
-          backgroundColor: greenColor,
+          backgroundColor: const Color.fromARGB(255, 29, 85, 31),
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(

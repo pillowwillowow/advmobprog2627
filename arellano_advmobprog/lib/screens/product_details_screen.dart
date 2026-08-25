@@ -15,15 +15,13 @@ class ProductDetailsScreen extends StatelessWidget {
     required this.product,
   });
 
-  // ============================================================
   // SAME COLOR SCHEME AS CART
-  // ============================================================
 
   static const Color orangeColor = Color(0xFFFFA000);
   static const Color darkOrangeColor = Color(0xFFF57C00);
 
   static const Color greenColor = Color(0xFF4CAF50);
-  static const Color darkGreenColor = Color(0xFF388E3C);
+  static const Color darkGreenColor = Color.fromARGB(255, 22, 70, 25);
 
   static const Color lightGreenColor = Color(0xFFE8F5E9);
 
@@ -359,7 +357,7 @@ class ProductDetailsScreen extends StatelessWidget {
               Icon(
                 icon,
                 size: 20.sp,
-                color: darkGreenColor,
+                color: const Color.fromARGB(255, 25, 78, 28),
               ),
 
               SizedBox(width: 10.w),
