@@ -6,12 +6,13 @@ import "package:flutter_dotenv/flutter_dotenv.dart";
 import "package:flutter_screenutil/flutter_screenutil.dart";
 import "package:provider/provider.dart";
 
+import 'providers/theme_provider.dart';
+import 'providers/cart_provider.dart';
+
 //screens
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 
-//providers
-import 'providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,14 +31,22 @@ class ArellanoAdvMobProg extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CartProvider()..loadCartFromApi(),
+        ),
+      ],
       child: ScreenUtilInit(
         designSize: const Size(412, 715),
         minTextAdapt: true,
         splitScreenMode: true,
         builder: (context, child) {
         final themeModel = context.watch<ThemeProvider>();
+
 
         return MaterialApp(
           debugShowCheckedModeBanner: false,

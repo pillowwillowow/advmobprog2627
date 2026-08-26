@@ -49,7 +49,7 @@ class Cart {
       'products': products.map((e) => e.toJson()).toList(),
       'total': total,
       'discountedTotal': discountedTotal,
-      'userId': userId,
+      'userId': 1,
       'totalProducts': totalProducts,
       'totalQuantity': totalQuantity,
     };

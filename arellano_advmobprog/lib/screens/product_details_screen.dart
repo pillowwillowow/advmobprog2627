@@ -1,29 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../providers/cart_provider.dart';
 import '../services/product_service.dart';
 
 import '../models/product_model.dart';
 import '../widgets/custom_text.dart';
+import 'package:provider/provider.dart';
 
 class ProductDetailsScreen extends StatelessWidget {
   final Product product;
-
-  static const int userId = 5;
+  final bool showAddtocart;
 
   const ProductDetailsScreen({
     super.key,
     required this.product,
+    this.showAddtocart = true,
   });
 
   // SAME COLOR SCHEME AS CART
 
-  static const Color orangeColor = Color(0xFFFFA000);
-  static const Color darkOrangeColor = Color(0xFFF57C00);
+  static const Color orangeColor =
+      Color(0xFFFFA000);
 
-  static const Color greenColor = Color(0xFF4CAF50);
-  static const Color darkGreenColor = Color.fromARGB(255, 22, 70, 25);
+  static const Color darkOrangeColor =
+      Color(0xFFF57C00);
 
-  static const Color lightGreenColor = Color(0xFFE8F5E9);
+  static const Color greenColor =
+      Color(0xFF4CAF50);
+
+  static const Color darkGreenColor =
+      Color.fromARGB(255, 22, 70, 25);
+
+  static const Color lightGreenColor =
+      Color(0xFFE8F5E9);
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +58,7 @@ class ProductDetailsScreen extends StatelessWidget {
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
+
             Container(
               width: double.infinity,
               height: 280.h,
@@ -60,9 +71,12 @@ class ProductDetailsScreen extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color:
-                        Colors.black.withOpacity(0.06),
+                        Colors.black.withOpacity(
+                      0.06,
+                    ),
                     blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    offset:
+                        const Offset(0, 3),
                   ),
                 ],
               ),
@@ -73,12 +87,13 @@ class ProductDetailsScreen extends StatelessWidget {
 
                 child: Image.network(
                   product.thumbnail,
-
                   fit: BoxFit.contain,
 
-                  errorBuilder: (_, __, ___) {
+                  errorBuilder:
+                      (_, __, ___) {
                     return Icon(
-                      Icons.image_not_supported_outlined,
+                      Icons
+                          .image_not_supported_outlined,
                       size: 60.sp,
                       color: Colors.grey,
                     );
@@ -88,43 +103,57 @@ class ProductDetailsScreen extends StatelessWidget {
             ),
 
             SizedBox(height: 20.h),
+
             CustomText(
               text: product.title,
               fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+                  FontWeight.bold,
             ),
 
             SizedBox(height: 8.h),
+
             Row(
               crossAxisAlignment:
                   CrossAxisAlignment.end,
               children: [
+
                 CustomText(
                   text:
-                      '\$${product.price.toStringAsFixed(2)}',
+                      '\₱${product.price.toStringAsFixed(2)}',
                   fontSize: 22.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight:
+                      FontWeight.bold,
                 ),
 
                 SizedBox(width: 10.w),
+
                 Container(
-                  padding: EdgeInsets.symmetric(
+                  padding:
+                      EdgeInsets.symmetric(
                     horizontal: 8.w,
                     vertical: 4.h,
                   ),
 
-                  decoration: BoxDecoration(
-                    color: lightGreenColor,
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        lightGreenColor,
                     borderRadius:
-                        BorderRadius.circular(6.r),
+                        BorderRadius.circular(
+                      6.r,
+                    ),
                   ),
 
                   child: Text(
                     '${product.discountPercentage.toStringAsFixed(0)}% OFF',
+
                     style: TextStyle(
-                      color: darkGreenColor,
+                      color:
+                          darkGreenColor,
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
                 ),
@@ -135,6 +164,7 @@ class ProductDetailsScreen extends StatelessWidget {
 
             Row(
               children: [
+
                 const Icon(
                   Icons.star,
                   color: orangeColor,
@@ -143,9 +173,11 @@ class ProductDetailsScreen extends StatelessWidget {
                 SizedBox(width: 5.w),
 
                 CustomText(
-                  text: product.rating.toString(),
+                  text:
+                      product.rating.toString(),
                   fontSize: 15.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight:
+                      FontWeight.bold,
                 ),
 
                 SizedBox(width: 8.w),
@@ -167,7 +199,9 @@ class ProductDetailsScreen extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            _sectionTitle('Description'),
+            _sectionTitle(
+              'Description',
+            ),
 
             SizedBox(height: 8.h),
 
@@ -178,26 +212,32 @@ class ProductDetailsScreen extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            _sectionTitle('Product Information'),
+            _sectionTitle(
+              'Product Information',
+            ),
 
             SizedBox(height: 12.h),
 
             _infoCard(
-              icon: Icons.storefront_outlined,
+              icon:
+                  Icons.storefront_outlined,
               label: 'Brand',
               value: product.brand,
             ),
 
             _infoCard(
-              icon: Icons.category_outlined,
+              icon:
+                  Icons.category_outlined,
               label: 'Category',
               value: product.category,
             ),
 
             _infoCard(
-              icon: Icons.inventory_2_outlined,
+              icon:
+                  Icons.inventory_2_outlined,
               label: 'Stock',
-              value: product.stock.toString(),
+              value:
+                  product.stock.toString(),
             ),
 
             _infoCard(
@@ -207,181 +247,193 @@ class ProductDetailsScreen extends StatelessWidget {
             ),
 
             _infoCard(
-              icon: Icons.check_circle_outline,
+              icon:
+                  Icons.check_circle_outline,
               label: 'Availability',
-              value: product.availabilityStatus,
+              value:
+                  product.availabilityStatus,
             ),
 
             _infoCard(
-              icon: Icons.verified_outlined,
+              icon:
+                  Icons.verified_outlined,
               label: 'Warranty',
-              value: product.warrantyInformation,
+              value:
+                  product.warrantyInformation,
             ),
 
             _infoCard(
-              icon: Icons.local_shipping_outlined,
+              icon:
+                  Icons.local_shipping_outlined,
               label: 'Shipping',
-              value: product.shippingInformation,
+              value:
+                  product.shippingInformation,
             ),
 
             _infoCard(
-              icon: Icons.assignment_return_outlined,
+              icon:
+                  Icons.assignment_return_outlined,
               label: 'Return Policy',
-              value: product.returnPolicy,
+              value:
+                  product.returnPolicy,
             ),
 
             SizedBox(height: 24.h),
 
-            SizedBox(
-              width: double.infinity,
-              height: 50.h,
+            // ADD TO CART ONLY WHEN ENABLED
 
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    final cart =
-                        await ProductService().addToCart(
-                      userId: userId,
-                      productId: product.id,
-                      quantity: 1,
-                    );
+            if (showAddtocart)
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      context.read<CartProvider>().addToCart(product);
 
-                    if (!context.mounted) return;
+                      if (!context.mounted) return;
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${product.title} added to cart!',
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${product.title} added to cart!',
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    } catch (error) {
+                      if (!context.mounted) return;
 
-                    debugPrint(
-                      'Created cart ID: ${cart.id}',
-                    );
-                  } catch (error) {
-                    if (!context.mounted) return;
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Failed to add product to cart.',
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Failed to add product to cart.',
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                },
-
-                icon: Icon(
-                  Icons.add_shopping_cart,
-                  size: 20.sp,
-                ),
-
-                label: Text(
-                  'Add to Cart',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
+                      );
+                    }
+                  },
+                  icon: Icon(
+                    Icons.add_shopping_cart,
+                    size: 20.sp,
                   ),
-                ),
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
-                  foregroundColor: Colors.white,
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-
-                  elevation: 0,
-                ),
-              ),
-            ),
-                      ],
+                  label: Text(
+                    'Add to Cart',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              }
-
-      Widget _sectionTitle(String title) {
-        return Row(
-          children: [
-            Container(
-              width: 4.w,
-              height: 22.h,
-
-              decoration: BoxDecoration(
-                color: orangeColor,
-                borderRadius:
-                    BorderRadius.circular(4.r),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4CAF50),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
               ),
-            ),
-
-            SizedBox(width: 8.w),
-
-            CustomText(
-              text: title,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-            ),
           ],
-        );
-      }
+        ),
+      ),
+    );
+  }
 
+  Widget _sectionTitle(
+    String title,
+  ) {
+    return Row(
+      children: [
+        Container(
+          width: 4.w,
+          height: 22.h,
 
-      Widget _infoCard({
-        required IconData icon,
-        required String label,
-        required String value,
-      }) {
-        return Container(
-          width: double.infinity,
+          decoration:
+              BoxDecoration(
+            color: orangeColor,
 
-          margin: EdgeInsets.only(
-            bottom: 8.h,
-          ),
-
-          padding: EdgeInsets.all(12.r),
-
-          decoration: BoxDecoration(
-            color: lightGreenColor,
             borderRadius:
-                BorderRadius.circular(10.r),
+                BorderRadius.circular(4.r),
+          ),
+        ),
+
+        SizedBox(width: 8.w),
+
+        CustomText(
+          text: title,
+          fontSize: 18.sp,
+          fontWeight:
+              FontWeight.bold,
+        ),
+      ],
+    );
+  }
+
+  Widget _infoCard({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      width: double.infinity,
+
+      margin:
+          EdgeInsets.only(
+        bottom: 8.h,
+      ),
+
+      padding:
+          EdgeInsets.all(12.r),
+
+      decoration:
+          BoxDecoration(
+        color:
+            lightGreenColor,
+
+        borderRadius:
+            BorderRadius.circular(10.r),
+      ),
+
+      child: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+          Icon(
+            icon,
+            size: 20.sp,
+            color:
+                const Color.fromARGB(
+              255,
+              25,
+              78,
+              28,
+            ),
           ),
 
-          child: Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          SizedBox(width: 10.w),
 
-            children: [
-              Icon(
-                icon,
-                size: 20.sp,
-                color: const Color.fromARGB(255, 25, 78, 28),
-              ),
+          SizedBox(
+            width: 90.w,
 
-              SizedBox(width: 10.w),
-
-              SizedBox(
-                width: 90.w,
-
-                child: CustomText(
-                  text: label,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              SizedBox(width: 8.w),
-
-              Expanded(
-                child: CustomText(
-                  text: value,
-                  fontSize: 13.sp,
-                ),
-              ),
-            ],
+            child: CustomText(
+              text: label,
+              fontSize: 13.sp,
+              fontWeight:
+                  FontWeight.bold,
+            ),
           ),
-        );
-      }
-    }
+
+          SizedBox(width: 8.w),
+
+          Expanded(
+            child: CustomText(
+              text: value,
+              fontSize: 13.sp,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
