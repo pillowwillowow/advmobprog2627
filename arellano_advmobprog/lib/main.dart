@@ -12,6 +12,8 @@ import 'providers/cart_provider.dart';
 //screens
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/splash_screen.dart';
+import 'screens/signin_screen.dart';
 
 
 void main() async {
@@ -56,11 +58,22 @@ class ArellanoAdvMobProg extends StatelessWidget {
               ? ThemeMode.dark
               : ThemeMode.light,
           title: 'E-Commerce App',
-          initialRoute: '/home',
+          initialRoute: '/',
+
           routes: {
-            '/home': (context) => const HomeScreen(),
-            '/settings': (context) => const SettingsScreen(),
+            '/': (context) =>
+                const SplashScreen(),
+
+            '/signin': (context) =>
+              const SigninScreen(),
+
+            '/home': (context) =>
+                const HomeScreen(),
+
+            '/settings': (context) =>
+                const SettingsScreen(),
           },
+
         );
       },
       ),

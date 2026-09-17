@@ -2,33 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../models/product_model.dart';
-import '../providers/cart_provider.dart';
 import '../services/product_service.dart';
 import '../widgets/custom_text.dart';
 import 'product_details_screen.dart';
-import 'package:provider/provider.dart';
 
 class ProductScreen extends StatefulWidget {
-  const ProductScreen({
-    super.key,
-  });
+  const ProductScreen({super.key});
 
   @override
-  State<ProductScreen> createState() =>
-      _ProductScreenState();
+  State<ProductScreen> createState() => _ProductScreenState();
 }
 
 class _ProductScreenState extends State<ProductScreen> {
-  final ProductService _productService =
-      ProductService();
+  final ProductService _productService = ProductService();
 
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
-  static const Color orangeColor =Color(0xFFFFA000);
-  static const Color greenColor =Color(0xFF4CAF50);
-  static const Color darkGreenColor =Color(0xFF388E3C);
-  static const Color lightGreenColor =Color(0xFFE8F5E9);
+  static const Color orangeColor = Color(0xFFFFA000);
+  static const Color greenColor = Color(0xFF4CAF50);
+  static const Color darkGreenColor = Color(0xFF388E3C);
+  static const Color lightGreenColor = Color(0xFFE8F5E9);
 
   List<Product> _products = [];
 
@@ -45,10 +38,7 @@ class _ProductScreenState extends State<ProductScreen> {
 
     _searchController.addListener(() {
       setState(() {
-        _searchQuery =
-            _searchController.text
-                .trim()
-                .toLowerCase();
+        _searchQuery = _searchController.text.trim().toLowerCase();
 
         _currentPage = 1;
       });
@@ -70,8 +60,7 @@ class _ProductScreenState extends State<ProductScreen> {
     });
 
     try {
-      final products =
-          await _productService.fetchAllProducts();
+      final products = await _productService.fetchAllProducts();
 
       if (!mounted) return;
 
@@ -85,8 +74,7 @@ class _ProductScreenState extends State<ProductScreen> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            'Unable to load products.\n\n$error';
+        _errorMessage = 'Unable to load products.\n\n$error';
       });
     }
   }
@@ -97,14 +85,11 @@ class _ProductScreenState extends State<ProductScreen> {
     }
 
     return _products.where((product) {
-      final title =
-          product.title.toLowerCase();
+      final title = product.title.toLowerCase();
 
-      final category =
-          product.category.toLowerCase();
+      final category = product.category.toLowerCase();
 
-      final brand =
-          product.brand.toLowerCase();
+      final brand = product.brand.toLowerCase();
 
       return title.contains(_searchQuery) ||
           category.contains(_searchQuery) ||
@@ -115,22 +100,17 @@ class _ProductScreenState extends State<ProductScreen> {
   List<Product> get _paginatedProducts {
     final products = _filteredProducts;
 
-    final startIndex =
-        (_currentPage - 1) *
-            _productsPerPage;
+    final startIndex = (_currentPage - 1) * _productsPerPage;
 
     if (startIndex >= products.length) {
       return [];
     }
 
-    final endIndex =
-        startIndex + _productsPerPage;
+    final endIndex = startIndex + _productsPerPage;
 
     return products.sublist(
       startIndex,
-      endIndex > products.length
-          ? products.length
-          : endIndex,
+      endIndex > products.length ? products.length : endIndex,
     );
   }
 
@@ -139,41 +119,15 @@ class _ProductScreenState extends State<ProductScreen> {
       return 1;
     }
 
-    return (_filteredProducts.length /
-            _productsPerPage)
-        .ceil();
+    return (_filteredProducts.length / _productsPerPage).ceil();
   }
 
-  void _openProductDetails(
-    Product product,
-  ) {
+  void _openProductDetails(Product product) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) =>
-            ProductDetailsScreen(
-          product: product,
-          showAddtocart: true,
-        ),
-      ),
-    );
-  }
-
-  void _addToCart(Product product) {
-    context
-        .read<CartProvider>()
-        .addToCart(product);
-
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${product.title} added to cart!',
-        ),
-        duration:
-            const Duration(seconds: 1),
+            ProductDetailsScreen(product: product, showAddtocart: true),
       ),
     );
   }
@@ -197,11 +151,7 @@ class _ProductScreenState extends State<ProductScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: greenColor,
-        ),
-      );
+      return const Center(child: CircularProgressIndicator(color: greenColor));
     }
 
     if (_errorMessage != null) {
@@ -212,42 +162,30 @@ class _ProductScreenState extends State<ProductScreen> {
       color: greenColor,
       onRefresh: _loadProducts,
       child: CustomScrollView(
-        physics:
-            const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                12.w,
-                12.h,
-                12.w,
-                8.h,
-              ),
+              padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 8.h),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search products...',
-                  prefixIcon: const Icon(
-                    Icons.search,
-                  ),
-                  suffixIcon:
-                      _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear,
-                              ),
-                              onPressed: () {
-                                _searchController
-                                    .clear();
-                              },
-                            )
-                          : null,
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                      : null,
                   filled: true,
-                  fillColor:
-                      Colors.grey.shade100,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(12.r),
+                    borderRadius: BorderRadius.circular(12.r),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -257,25 +195,17 @@ class _ProductScreenState extends State<ProductScreen> {
 
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                16.w,
-                4.h,
-                16.w,
-                10.h,
-              ),
+              padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomText(
                     text: 'All Products',
                     fontSize: 18.sp,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                   CustomText(
-                    text:
-                        '${_filteredProducts.length} products',
+                    text: '${_filteredProducts.length} products',
                     fontSize: 12.sp,
                   ),
                 ],
@@ -284,104 +214,77 @@ class _ProductScreenState extends State<ProductScreen> {
           ),
 
           if (_paginatedProducts.isEmpty)
-            SliverToBoxAdapter(
-              child: _buildNoProducts(),
-            )
+            SliverToBoxAdapter(child: _buildNoProducts())
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                12.w,
-                0,
-                12.w,
-                10.h,
-              ),
+              padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 10.h),
               sliver: SliverGrid.builder(
-                gridDelegate:
-                    SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10.w,
                   mainAxisSpacing: 10.h,
                   childAspectRatio: 0.66,
                 ),
-                itemCount:
-                    _paginatedProducts.length,
+                itemCount: _paginatedProducts.length,
                 itemBuilder: (context, index) {
-                  final product =
-                      _paginatedProducts[index];
+                  final product = _paginatedProducts[index];
 
-                  return _buildProductCard(
-                    product,
-                  );
+                  return _buildProductCard(product);
                 },
               ),
             ),
 
           if (_filteredProducts.isNotEmpty)
-            SliverToBoxAdapter(
-              child: _buildPagination(),
-            ),
+            SliverToBoxAdapter(child: _buildPagination()),
         ],
       ),
     );
   }
 
-  Widget _buildProductCard(
-    Product product,
-  ) {
+  Widget _buildProductCard(Product product) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(16.r),
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withOpacity(0.06),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 8,
-            offset:
-                const Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(16.r),
         child: InkWell(
-          borderRadius:
-              BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(16.r),
           onTap: () {
             _openProductDetails(product);
           },
           child: Padding(
-            padding:
-                EdgeInsets.all(9.r),
+            padding: EdgeInsets.all(9.r),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   flex: 5,
                   child: Container(
-                    width:
-                        double.infinity,
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color:
-                          Colors.grey.shade50,
-                      borderRadius:
-                          BorderRadius.circular(12.r),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(12.r),
+                      borderRadius: BorderRadius.circular(12.r),
                       child: Image.network(
                         product.thumbnail,
                         fit: BoxFit.contain,
-                        errorBuilder:
-                            (_, __, ___) {
+                        errorBuilder: (_, __, ___) {
                           return Icon(
-                            Icons
-                                .image_not_supported_outlined,
+                            Icons.image_not_supported_outlined,
                             size: 40.sp,
                             color: Colors.grey,
                           );
@@ -394,30 +297,19 @@ class _ProductScreenState extends State<ProductScreen> {
                 SizedBox(height: 8.h),
 
                 Container(
-                  padding:
-                      EdgeInsets.symmetric(
-                    horizontal: 6.w,
-                    vertical: 3.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
                   decoration: BoxDecoration(
-                    color:
-                        lightGreenColor,
-                    borderRadius:
-                        BorderRadius.circular(5.r),
+                    color: lightGreenColor,
+                    borderRadius: BorderRadius.circular(5.r),
                   ),
                   child: Text(
-                    _formatCategory(
-                      product.category,
-                    ),
+                    _formatCategory(product.category),
                     maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color:
-                          darkGreenColor,
+                      color: darkGreenColor,
                       fontSize: 8.sp,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -427,8 +319,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 CustomText(
                   text: product.title,
                   fontSize: 13.sp,
-                  fontWeight:
-                      FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                   maxLines: 2,
                 ),
 
@@ -436,29 +327,22 @@ class _ProductScreenState extends State<ProductScreen> {
 
                 Row(
                   children: [
-                    Icon(
-                      Icons.star,
-                      color: orangeColor,
-                      size: 14.sp,
-                    ),
+                    Icon(Icons.star, color: orangeColor, size: 14.sp),
                     SizedBox(width: 3.w),
                     Text(
                       product.rating.toString(),
                       style: TextStyle(
                         fontSize: 10.sp,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       '${product.discountPercentage.toStringAsFixed(0)}% OFF',
                       style: TextStyle(
-                        color:
-                            darkGreenColor,
+                        color: darkGreenColor,
                         fontSize: 8.sp,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -470,11 +354,10 @@ class _ProductScreenState extends State<ProductScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        '\₱${product.price.toStringAsFixed(2)}',
+                        '₱${product.price.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 15.sp,
-                          fontWeight:
-                              FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -490,59 +373,35 @@ class _ProductScreenState extends State<ProductScreen> {
 
   Widget _buildPagination() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        12.w,
-        8.h,
-        12.w,
-        20.h,
-      ),
+      padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 20.h),
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ElevatedButton(
-            onPressed:
-                _currentPage > 1
-                    ? _previousPage
-                    : null,
-            style:
-                ElevatedButton.styleFrom(
+            onPressed: _currentPage > 1 ? _previousPage : null,
+            style: ElevatedButton.styleFrom(
               backgroundColor: greenColor,
-              foregroundColor:Colors.white,
+              foregroundColor: Colors.white,
             ),
-            child: const Text(
-              'Previous',
-            ),
+            child: const Text('Previous'),
           ),
 
           SizedBox(width: 16.w),
 
           Text(
             'Page $_currentPage of $_totalPages',
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight:
-                  FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold),
           ),
 
           SizedBox(width: 16.w),
 
           ElevatedButton(
-            onPressed:
-                _currentPage < _totalPages
-                    ? _nextPage
-                    : null,
-            style:
-                ElevatedButton.styleFrom(
-              backgroundColor:
-                  greenColor,
-              foregroundColor:
-                  Colors.white,
+            onPressed: _currentPage < _totalPages ? _nextPage : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: greenColor,
+              foregroundColor: Colors.white,
             ),
-            child: const Text(
-              'Next',
-            ),
+            child: const Text('Next'),
           ),
         ],
       ),
@@ -552,62 +411,43 @@ class _ProductScreenState extends State<ProductScreen> {
   Widget _buildErrorState() {
     return Center(
       child: Padding(
-        padding:
-            EdgeInsets.all(24.w),
+        padding: EdgeInsets.all(24.w),
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.wifi_off_rounded,
               size: 60.sp,
-              color:
-                  Colors.grey.shade400,
+              color: Colors.grey.shade400,
             ),
 
             SizedBox(height: 16.h),
 
             CustomText(
-              text:
-                  'Unable to load products',
+              text: 'Unable to load products',
               fontSize: 18.sp,
-              fontWeight:
-                  FontWeight.bold,
+              fontWeight: FontWeight.bold,
             ),
 
             SizedBox(height: 8.h),
 
             Text(
-              _errorMessage ??
-                  'Something went wrong.',
-              textAlign:
-                  TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color:
-                    Colors.grey.shade600,
-              ),
+              _errorMessage ?? 'Something went wrong.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600),
             ),
 
             SizedBox(height: 18.h),
 
             ElevatedButton.icon(
               onPressed: _loadProducts,
-              icon: const Icon(
-                Icons.refresh,
-              ),
-              label: const Text('Try Again',
-              ),
-              style:
-                  ElevatedButton.styleFrom(
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
                 backgroundColor: greenColor,
-                foregroundColor:Colors.white,
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    10.r,
-                  ),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
               ),
             ),
@@ -622,24 +462,20 @@ class _ProductScreenState extends State<ProductScreen> {
       height: 300.h,
       child: Center(
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.inventory_2_outlined,
               size: 55.sp,
-              color:
-                  Colors.grey.shade400,
+              color: Colors.grey.shade400,
             ),
 
             SizedBox(height: 12.h),
 
             CustomText(
-              text:
-                  'No products found',
+              text: 'No products found',
               fontSize: 16.sp,
-              fontWeight:
-                  FontWeight.bold,
+              fontWeight: FontWeight.bold,
             ),
           ],
         ),
@@ -647,9 +483,7 @@ class _ProductScreenState extends State<ProductScreen> {
     );
   }
 
-  String _formatCategory(
-    String category,
-  ) {
+  String _formatCategory(String category) {
     return category
         .split('-')
         .map((word) {
@@ -657,8 +491,7 @@ class _ProductScreenState extends State<ProductScreen> {
             return word;
           }
 
-          return word[0].toUpperCase() +
-              word.substring(1);
+          return word[0].toUpperCase() + word.substring(1);
         })
         .join(' ');
   }

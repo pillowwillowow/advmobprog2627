@@ -37,3 +37,46 @@ The interaction between these components follows this sequence:
 
 This activity introduces a layered design pattern based on the Model–Service–Screen architecture, which is commonly used in Flutter applications. By separating data models, API services, and UI screens into different files, the application becomes more modular, reusable, and easier to debug. Future enhancements, such as adding new API endpoints or modifying the user interface, can be implemented with minimal changes to the other layers, resulting in a more scalable and maintainable application.
 
+## Lab Activity 4: Discussion
+
+### User Model, Services, and Profile Screen Interaction
+
+The application uses the User model, UserService, and screens together to handle and display user data from the DummyJSON API. When the user enters a username and password on the Sign In screen, the credentials are passed to the `loginUser()` method of `UserService`. The service sends the request to the authentication API endpoint and receives the authenticated user's data when the credentials are valid.
+
+The returned JSON data is converted into a `User` object using the `User.fromJson()` factory constructor. Important user information such as the user ID, username, email, first name, last name, gender, image, access token, and refresh token is then saved locally using SharedPreferences.
+
+The Profile screen retrieves the saved user information through `UserService`. The saved data is converted back into a `User` object and displayed on the Profile screen. This allows the application to show the currently authenticated user's information without hard-coding the values or requesting the same information every time the Profile screen is opened.
+
+The interaction can be summarized as:
+
+Sign In Screen → UserService → DummyJSON API → User Model → SharedPreferences → Profile Screen
+
+### Updated Design Pattern
+
+The updated design pattern separates the application into models, services, providers, screens, and widgets. The model represents the structure of data received from the API. For example, `User` represents authenticated user information, while `Product` represents product information.
+
+The service layer is responsible for communicating with the API and handling data operations. `UserService` handles authentication and saved user information, while `ProductService` handles product and cart-related API requests. Screens are responsible for presenting information and handling user interaction. Examples include the Sign In, Splash, Home, Product, Cart, and Profile screens.
+
+Providers are used for application state that needs to be shared or updated across widgets. For example, `ThemeProvider` manages the application's light and dark themes, while `CartProvider` manages the current cart state. SharedPreferences is used for persistent user authentication and user information so that the data remains available even when the application is restarted.
+
+This design pattern separates the responsibilities of the application and makes the source code easier to organize, maintain, and update.
+
+The updated structure can be summarized as:
+
+API → Services → Models → Providers/Saved Data → Screens → Widgets
+
+### Rendering the Cart Screen Using the Saved User ID
+
+After a successful login, the authenticated user's ID is saved in SharedPreferences together with the other user information. When the Home screen is loaded, `UserService.getUser()` retrieves the saved information and converts it into a `User` object.
+
+The saved `user.id` is then passed to the Cart screen instead of using a hard-coded user ID. For example:
+
+`CartScreen(userId: _user!.id)`
+
+The Cart screen can use this ID when retrieving the cart associated with the authenticated user. This allows the application to render the cart according to the account that is currently logged in.
+
+The process can be summarized as:
+
+Login → Save User Data → Retrieve Saved User → Get User ID → CartScreen(userId) → User Cart
+
+This implementation connects authentication with the Profile and Cart screens. The Profile screen displays the information of the authenticated user, while the Cart screen uses the same saved user's ID to determine which user's cart data should be rendered.
