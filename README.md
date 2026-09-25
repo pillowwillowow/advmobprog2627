@@ -1,3 +1,4 @@
+
 # Lab Activity 2: Discussion
 
 This activity follows the Model–Service–Screen architecture, which separates the application's data, business logic, and user interface into different layers. This design makes the application easier to understand, maintain, and expand.
@@ -19,6 +20,55 @@ The interaction between these components follows this sequence:
 7. The screen rebuilds the UI and displays the retrieved data.
 
 This activity introduces a layered design pattern based on the Model–Service–Screen architecture, which is commonly used in Flutter applications. By separating data models, API services, and UI screens into different files, the application becomes more modular, reusable, and easier to debug. Future enhancements, such as adding new API endpoints or modifying the user interface, can be implemented with minimal changes to the other layers, resulting in a more scalable and maintainable application.
+
+## Lab Activity 3 Discussion:
+
+### Interaction of the Cart Model, Service, and Screen
+
+In this laboratory activity, the cart functionality was implemented by separating the data model, API service, and user interface into different parts of the application. These components work together to retrieve cart information from the API and display it on the Cart screen.
+
+The **Cart Model** represents the structure of the cart data received from the API. It contains the information needed by the application, such as the cart ID, user ID, products, quantity, price, and other cart-related values. The model converts the JSON response from the API into Dart objects that can be accessed more easily by the application.
+
+The **ProductService** is responsible for communicating with the DummyJSON API. Instead of allowing the Cart screen to directly perform HTTP requests, the screen requests the required data through the service. The service retrieves the cart associated with a user and converts the API response into the appropriate model.
+
+The **CartScreen** is responsible for presenting the retrieved cart information to the user. It uses the data provided by the service and model to display the products, quantities, prices, and order summary. This separation prevents the screen from containing unnecessary API and data-processing logic.
+
+The general interaction can be represented as:
+
+**CartScreen → ProductService → DummyJSON Cart API → Cart Model → CartScreen**
+
+When a user selects a product from the cart, the application can retrieve the complete product information using its product ID and open the same `product_details_screen.dart` that is also used by the Product screen. This avoids creating a separate detail screen specifically for cart products.
+
+The navigation flow can therefore be summarized as:
+
+**Cart Item → Product ID → ProductService → Get Product by ID → ProductDetailsScreen**
+
+Using the same `ProductDetailsScreen` provides a consistent product-detail interface regardless of whether the product was selected from the main product list or from the user's cart.
+
+### Updated Design Pattern
+
+The updated design in this activity improves the separation of responsibilities between the different parts of the application. The **model** defines the structure of the data, the **service** manages communication with the API, and the **screen** focuses on displaying the data and handling user interaction.
+
+The basic structure follows:
+
+**Screen → Service → API → Model → Screen**
+
+This design makes the application more organized compared with placing the HTTP request, JSON conversion, and interface code inside a single screen. It also improves reusability because the same service methods and models can be accessed by multiple screens.
+
+Another improvement is the reuse of `ProductDetailsScreen`. Both the Product screen and Cart screen can navigate to the same product details page. The difference is the source of the selected product. The Product screen already has product information from the product listing, while the Cart screen can use the product ID from the cart to retrieve the complete product information before opening the details page.
+
+This approach reduces duplicate code and keeps the application's product-related functionality consistent.
+
+### Using Get by ID in the Cart Endpoint
+
+The cart API provides information about the products included in a user's cart. Each cart product contains an ID that identifies the corresponding product. This ID can be used to retrieve the complete product information through the product service.
+
+For example, when a cart item is selected, its product ID can be passed to the `fetchProductById()` method:
+
+```dart
+final product = await _productService.fetchProductById(
+  cartItem.id,
+);
 
 ## Lab Activity 4: Discussion
 
