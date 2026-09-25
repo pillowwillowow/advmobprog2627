@@ -8,6 +8,8 @@ class User {
   final String image;
   final String accessToken;
   final String refreshToken;
+  final int age;
+  final String contactNo;
 
   User({
     required this.id,
@@ -19,11 +21,11 @@ class User {
     required this.image,
     required this.accessToken,
     required this.refreshToken,
+    this.age = 0,
+    this.contactNo = '',
   });
 
-  factory User.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] ?? 0,
       username: json['username'] ?? '',
@@ -34,6 +36,8 @@ class User {
       image: json['image'] ?? '',
       accessToken: json['accessToken'] ?? '',
       refreshToken: json['refreshToken'] ?? '',
+      age: json['age'] ?? 0,
+      contactNo: json['contactNo'] ?? json['phone'] ?? '',
     );
   }
 }

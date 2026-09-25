@@ -21,19 +21,15 @@ class Cart {
     return Cart(
       id: json['id'] ?? 0,
 
-      products: (json['products'] as List?)
-              ?.map(
-                (e) => CartProduct.fromJson(
-                  Map<String, dynamic>.from(e),
-                ),
-              )
+      products:
+          (json['products'] as List?)
+              ?.map((e) => CartProduct.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
 
       total: (json['total'] as num?)?.toDouble() ?? 0.0,
 
-      discountedTotal:
-          (json['discountedTotal'] as num?)?.toDouble() ?? 0.0,
+      discountedTotal: (json['discountedTotal'] as num?)?.toDouble() ?? 0.0,
 
       userId: json['userId'] ?? 0,
 
@@ -80,11 +76,9 @@ class CartProduct {
   });
 
   factory CartProduct.fromJson(Map<String, dynamic> json) {
-    final double price =
-        (json['price'] as num?)?.toDouble() ?? 0.0;
+    final double price = (json['price'] as num?)?.toDouble() ?? 0.0;
 
-    final int quantity =
-        json['quantity'] ?? 0;
+    final int quantity = json['quantity'] ?? 0;
 
     final double discountedTotal =
         (json['discountedTotal'] as num?)?.toDouble() ??
@@ -93,18 +87,14 @@ class CartProduct {
 
     final double discountedPrice =
         (json['discountedPrice'] as num?)?.toDouble() ??
-        (quantity > 0
-            ? discountedTotal / quantity
-            : price);
+        (quantity > 0 ? discountedTotal / quantity : price);
 
     return CartProduct(
       id: json['id'] ?? 0,
       title: json['title'] ?? '',
       price: price,
       quantity: quantity,
-      total:
-          (json['total'] as num?)?.toDouble() ??
-          price * quantity,
+      total: (json['total'] as num?)?.toDouble() ?? price * quantity,
       discountPercentage:
           (json['discountPercentage'] as num?)?.toDouble() ?? 0.0,
       discountedTotal: discountedTotal,

@@ -11,21 +11,16 @@ class SettingsScreen extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Settings"),
-      ),
+      appBar: AppBar(title: const Text("Settings")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Card(
           child: SwitchListTile(
-            title: Text(
-              themeProvider.isDark 
-                  ? "Dark Mode"
-                  : "Light Mode",
-              ),
-              subtitle: const Text("Enable or disable dark theme"),
-              secondary: Icon(
-              themeProvider.isDark // Enhancement 3: Add settings page to move the dark/light mode switch. | DONE.
+            title: Text(themeProvider.isDark ? "Dark Mode" : "Light Mode"),
+            subtitle: const Text("Enable or disable dark theme"),
+            secondary: Icon(
+              themeProvider
+                      .isDark // Enhancement 3: Add settings page to move the dark/light mode switch. | DONE.
                   ? Icons.dark_mode
                   : Icons.light_mode,
             ),

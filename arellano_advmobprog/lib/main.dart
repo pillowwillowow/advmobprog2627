@@ -1,31 +1,33 @@
-//packages
-import "package:flutter/material.dart";
-import "package:flutter/services.dart";
-// ignore: unused_import
-import "package:flutter_dotenv/flutter_dotenv.dart";
-import "package:flutter_screenutil/flutter_screenutil.dart";
-import "package:provider/provider.dart";
+// packages
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
 
 import 'providers/theme_provider.dart';
 import 'providers/cart_provider.dart';
 
-//screens
+// screens
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/signin_screen.dart';
+import 'screens/signup_screen.dart';
 
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  SystemChrome.setPreferredOrientations([ DeviceOrientation.portraitUp]).then ((
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    _,
-  ) async {
-    await dotenv.load(fileName: "assets/.env");
-    runApp(const ArellanoAdvMobProg());
-  });
+  await dotenv.load(fileName: 'assets/.env');
+
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  runApp(const ArellanoAdvMobProg());
 }
 
 class ArellanoAdvMobProg extends StatelessWidget {
@@ -35,9 +37,7 @@ class ArellanoAdvMobProg extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => ThemeProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(
           create: (_) => CartProvider()..loadCartFromApi(),
         ),
@@ -47,39 +47,25 @@ class ArellanoAdvMobProg extends StatelessWidget {
         minTextAdapt: true,
         splitScreenMode: true,
         builder: (context, child) {
-        final themeModel = context.watch<ThemeProvider>();
+          final themeModel = context.watch<ThemeProvider>();
 
-
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: themeModel.lightTheme,
-          darkTheme: themeModel.darkTheme,
-          themeMode: themeModel.isDark
-              ? ThemeMode.dark
-              : ThemeMode.light,
-          title: 'E-Commerce App',
-          initialRoute: '/',
-
-          routes: {
-            '/': (context) =>
-                const SplashScreen(),
-
-            '/signin': (context) =>
-              const SigninScreen(),
-
-            '/home': (context) =>
-                const HomeScreen(),
-
-            '/settings': (context) =>
-                const SettingsScreen(),
-          },
-
-        );
-      },
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'E-Commerce App',
+            theme: themeModel.lightTheme,
+            darkTheme: themeModel.darkTheme,
+            themeMode: themeModel.isDark ? ThemeMode.dark : ThemeMode.light,
+            initialRoute: '/',
+            routes: {
+              '/': (context) => const SplashScreen(),
+              '/signin': (context) => const SigninScreen(),
+              '/signup': (context) => const SignupScreen(),
+              '/home': (context) => const HomeScreen(),
+              '/settings': (context) => const SettingsScreen(),
+            },
+          );
+        },
       ),
     );
   }
 }
-    
-  
-        

@@ -30,7 +30,7 @@ class _ProductScreenState extends State<ProductScreen> {
   String? _errorMessage;
   int _currentPage = 1;
 
-  static const int _productsPerPage = 10;
+  static const int _productsPerPage = 6;
 
   @override
   void initState() {
@@ -248,7 +248,7 @@ class _ProductScreenState extends State<ProductScreen> {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),

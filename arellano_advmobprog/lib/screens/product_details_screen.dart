@@ -54,7 +54,7 @@ class ProductDetailsScreen extends StatelessWidget {
 
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -163,51 +163,56 @@ class ProductDetailsScreen extends StatelessWidget {
             SizedBox(height: 12.h),
 
             _infoCard(
-              context: context, 
+              context: context,
               icon: Icons.storefront_outlined,
               label: 'Brand',
               value: product.brand,
             ),
 
             _infoCard(
-              context: context, 
+              context: context,
               icon: Icons.category_outlined,
               label: 'Category',
               value: product.category,
             ),
 
             _infoCard(
-              context: context, 
+              context: context,
               icon: Icons.inventory_2_outlined,
               label: 'Stock',
               value: product.stock.toString(),
             ),
 
-            _infoCard(context: context, icon: Icons.qr_code_2, label: 'SKU', value: product.sku),
+            _infoCard(
+              context: context,
+              icon: Icons.qr_code_2,
+              label: 'SKU',
+              value: product.sku,
+            ),
 
             _infoCard(
-              context: context, 
+              context: context,
               icon: Icons.check_circle_outline,
               label: 'Availability',
               value: product.availabilityStatus,
             ),
 
             _infoCard(
-              context: context, 
+              context: context,
               icon: Icons.verified_outlined,
               label: 'Warranty',
               value: product.warrantyInformation,
             ),
 
             _infoCard(
-              context: context, 
+              context: context,
               icon: Icons.local_shipping_outlined,
               label: 'Shipping',
               value: product.shippingInformation,
             ),
 
             _infoCard(
-              context: context, 
+              context: context,
               icon: Icons.assignment_return_outlined,
               label: 'Return Policy',
               value: product.returnPolicy,

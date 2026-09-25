@@ -1,4 +1,3 @@
-
 class Product {
   final int id;
   final String title;
@@ -23,7 +22,7 @@ class Product {
   final String thumbnail;
   final ProductMeta meta;
 
-Product({
+  Product({
     required this.id,
     required this.title,
     required this.description,
@@ -66,7 +65,8 @@ Product({
       warrantyInformation: json['warrantyInformation'] ?? '',
       shippingInformation: json['shippingInformation'] ?? '',
       availabilityStatus: json['availabilityStatus'] ?? '',
-      reviews: (json['reviews'] as List<dynamic>?)
+      reviews:
+          (json['reviews'] as List<dynamic>?)
               ?.map((reviewJson) => ProductReview.fromJson(reviewJson))
               .toList() ??
           [],
@@ -75,7 +75,7 @@ Product({
       meta: ProductMeta.fromJson(json['meta'] ?? {}),
       images: List<String>.from(json['images'] ?? []),
       thumbnail: json['thumbnail'] ?? '',
-    );    
+    );
   }
 }
 
@@ -106,7 +106,7 @@ class ProductReview {
   final String reviewerName;
   final String reviewerEmail;
 
-ProductReview({
+  ProductReview({
     required this.rating,
     required this.comment,
     required this.date,

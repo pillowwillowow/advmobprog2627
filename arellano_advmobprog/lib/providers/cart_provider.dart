@@ -7,14 +7,10 @@ class CartItem {
   final Product product;
   int quantity;
 
-  CartItem({
-    required this.product,
-    this.quantity = 1,
-  });
+  CartItem({required this.product, this.quantity = 1});
 
   double get discountedPrice {
-    return product.price *
-        (1 - product.discountPercentage / 100);
+    return product.price * (1 - product.discountPercentage / 100);
   }
 
   double get total {
@@ -23,20 +19,17 @@ class CartItem {
 }
 
 class CartProvider extends ChangeNotifier {
-  final ProductService _productService =
-      ProductService();
+  final ProductService _productService = ProductService();
 
   final List<CartItem> _items = [];
 
   bool _isLoaded = false;
   bool _isLoading = false;
 
-  List<CartItem> get items =>
-      List.unmodifiable(_items);
+  List<CartItem> get items => List.unmodifiable(_items);
 
   bool get isLoaded => _isLoaded;
   bool get isLoading => _isLoading;
-
 
   Future<void> loadCartFromApi() async {
     if (_isLoaded || _isLoading) {
@@ -48,8 +41,7 @@ class CartProvider extends ChangeNotifier {
 
     try {
       // ALWAYS fetch Cart 1.
-      final cart =
-          await _productService.fetchCartById(1);
+      final cart = await _productService.fetchCartById(1);
 
       // Clear local list first.
       _items.clear();
@@ -57,16 +49,12 @@ class CartProvider extends ChangeNotifier {
       // Load every product that belongs to Cart 1.
       for (final cartProduct in cart.products) {
         try {
-          final product =
-              await _productService.fetchProductById(
+          final product = await _productService.fetchProductById(
             cartProduct.id,
           );
 
           _items.add(
-            CartItem(
-              product: product,
-              quantity: cartProduct.quantity,
-            ),
+            CartItem(product: product, quantity: cartProduct.quantity),
           );
         } catch (error) {
           debugPrint(
@@ -78,29 +66,20 @@ class CartProvider extends ChangeNotifier {
 
       _isLoaded = true;
 
-      debugPrint(
-        'Cart 1 loaded successfully.',
-      );
+      debugPrint('Cart 1 loaded successfully.');
 
-      debugPrint(
-        'Products in local cart: ${_items.length}',
-      );
+      debugPrint('Products in local cart: ${_items.length}');
     } catch (error) {
-      debugPrint(
-        'Failed to load Cart 1: $error',
-      );
+      debugPrint('Failed to load Cart 1: $error');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-
   void addToCart(Product product) {
-    final existingIndex =
-        _items.indexWhere(
-      (item) =>
-          item.product.id == product.id,
+    final existingIndex = _items.indexWhere(
+      (item) => item.product.id == product.id,
     );
 
     if (existingIndex != -1) {
@@ -109,30 +88,18 @@ class CartProvider extends ChangeNotifier {
       _items[existingIndex].quantity++;
     } else {
       // Product does not exist.
-      _items.add(
-        CartItem(
-          product: product,
-          quantity: 1,
-        ),
-      );
+      _items.add(CartItem(product: product, quantity: 1));
     }
 
     notifyListeners();
   }
 
   bool isInCart(int productId) {
-    return _items.any(
-      (item) =>
-          item.product.id == productId,
-    );
+    return _items.any((item) => item.product.id == productId);
   }
 
   int getQuantity(int productId) {
-    final index =
-        _items.indexWhere(
-      (item) =>
-          item.product.id == productId,
-    );
+    final index = _items.indexWhere((item) => item.product.id == productId);
 
     if (index == -1) {
       return 0;
@@ -142,11 +109,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   void increaseQuantity(int productId) {
-    final index =
-        _items.indexWhere(
-      (item) =>
-          item.product.id == productId,
-    );
+    final index = _items.indexWhere((item) => item.product.id == productId);
 
     if (index == -1) {
       return;
@@ -157,13 +120,8 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
   void decreaseQuantity(int productId) {
-    final index =
-        _items.indexWhere(
-      (item) =>
-          item.product.id == productId,
-    );
+    final index = _items.indexWhere((item) => item.product.id == productId);
 
     if (index == -1) {
       return;
@@ -179,10 +137,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   void removeFromCart(int productId) {
-    _items.removeWhere(
-      (item) =>
-          item.product.id == productId,
-    );
+    _items.removeWhere((item) => item.product.id == productId);
 
     notifyListeners();
   }
@@ -193,25 +148,16 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
   double get subtotal {
-    return _items.fold(
-      0,
-      (sum, item) {
-        return sum +
-            (item.product.price *
-                item.quantity);
-      },
-    );
+    return _items.fold(0, (sum, item) {
+      return sum + (item.product.price * item.quantity);
+    });
   }
 
   double get total {
-    return _items.fold(
-      0,
-      (sum, item) {
-        return sum + item.total;
-      },
-    );
+    return _items.fold(0, (sum, item) {
+      return sum + item.total;
+    });
   }
 
   double get discount {
@@ -219,11 +165,8 @@ class CartProvider extends ChangeNotifier {
   }
 
   int get totalQuantity {
-    return _items.fold(
-      0,
-      (sum, item) {
-        return sum + item.quantity;
-      },
-    );
+    return _items.fold(0, (sum, item) {
+      return sum + item.quantity;
+    });
   }
 }

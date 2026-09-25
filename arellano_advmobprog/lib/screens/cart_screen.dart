@@ -23,15 +23,6 @@ class _CartScreenState extends State<CartScreen> {
   static const Color darkOrangeColor = Color(0xFFF57C00);
   static const Color greenColor = Color(0xFF4CAF50);
 
-  @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CartProvider>().loadCartFromApi();
-    });
-  }
-
   Future<void> _openProductDetails(int productId) async {
     try {
       final Product product = await _productService.fetchProductById(productId);
@@ -41,13 +32,8 @@ class _CartScreenState extends State<CartScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ProductDetailsScreen(
-            product: product,
-
-            // Hide Add to Cart when opened
-            // from the cart.
-            showAddtocart: false,
-          ),
+          builder: (context) =>
+              ProductDetailsScreen(product: product, showAddtocart: false),
         ),
       );
     } catch (error) {
@@ -106,7 +92,7 @@ class _CartScreenState extends State<CartScreen> {
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
 
             blurRadius: 8,
 

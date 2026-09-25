@@ -17,7 +17,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-//  Enhancement 1: Make your own UI for the splash_screen implementing the persistent authentication. *//
+    //  Enhancement 1: Make your own UI for the splash_screen implementing the persistent authentication. *//
     _checkAuthentication();
   }
 
@@ -46,7 +46,11 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/icons/nuicon.jpeg', width: 100.w, height: 100.h),
+            Image.asset(
+              'assets/icons/nuicon.jpeg',
+              width: 100.w,
+              height: 100.h,
+            ),
 
             SizedBox(height: 20.h),
 
