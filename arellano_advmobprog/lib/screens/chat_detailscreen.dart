@@ -363,7 +363,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final formattedTime = DateFormat('h:mm a').format(timestamp);
 
     final bubbleColor = isMe
-        ? const Color.fromARGB(255, 73, 173, 77)
+        ? const Color.fromARGB(255, 63, 158, 66)
         : isDark
         ? const Color(0xFF263328)
         : const Color(0xFFFFE0B2);
