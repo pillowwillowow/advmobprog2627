@@ -226,26 +226,15 @@ class ProductDetailsScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 50.h,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      context.read<CartProvider>().addToCart(product);
+                  onPressed: () {
+                    context.read<CartProvider>().addToCart(product);
 
-                      if (!context.mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product.title} added to cart!'),
-                        ),
-                      );
-                    } catch (error) {
-                      if (!context.mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to add product to cart.'),
-                        ),
-                      );
-                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${product.title} added to cart!'),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
                   },
                   icon: Icon(Icons.add_shopping_cart, size: 20.sp),
                   label: Text(

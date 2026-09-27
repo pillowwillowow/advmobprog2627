@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/user_service.dart';
 
@@ -20,6 +22,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final UserService _userService = UserService();
+  final _imageController = TextEditingController();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -33,7 +36,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-
+    _imageController.dispose();
     super.dispose();
   }
 
@@ -56,28 +59,61 @@ class _SignupScreenState extends State<SignupScreen> {
         username: _usernameController.text.trim(),
       );
 
-      await _userService.saveFirebaseUserData(
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        age: int.parse(_ageController.text.trim()),
-        contactNo: _contactController.text.trim(),
-        username: _usernameController.text.trim(),
-        email: _emailController.text.trim(),
-      );
+      final user = FirebaseAuth.instance.currentUser;
 
-      if (!mounted) return;
+      if (user == null) {
+        throw StateError(
+          'Account was created, but the user session is missing.',
+        );
+      }
+
+      await FirebaseFirestore.instance.collection('Users').doc(user.uid).set({
+        'uid': user.uid,
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'username': _usernameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'age': int.tryParse(_ageController.text.trim()),
+        'image': _imageController.text.trim(),
+        'contact': _contactController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (!mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Account created successfully.')),
       );
 
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-    } catch (e) {
-      if (!mounted) return;
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      String message = error.message ?? 'Unable to create account.';
+
+      if (error.code == 'email-already-in-use') {
+        message = 'An account already uses this email.';
+      } else if (error.code == 'weak-password') {
+        message = 'Please use a stronger password.';
+      } else if (error.code == 'invalid-email') {
+        message = 'Please enter a valid email address.';
+      }
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Sign up failed: $e')));
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Sign up failed: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -335,6 +371,17 @@ class _SignupScreenState extends State<SignupScreen> {
                 SizedBox(height: 14.h),
 
                 TextFormField(
+                  controller: _imageController,
+                  keyboardType: TextInputType.url,
+                  decoration: _inputDecoration(
+                    label: 'Profile image URL',
+                    icon: Icons.image,
+                  ),
+                ),
+
+                SizedBox(height: 14.h),
+
+                TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: _inputDecoration(
@@ -353,6 +400,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     ),
                   ),
+
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Enter your password';

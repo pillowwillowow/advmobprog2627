@@ -9,9 +9,10 @@ import '../providers/cart_provider.dart';
 import 'product_details_screen.dart';
 
 class CartScreen extends StatefulWidget {
-  final int userId;
+  final int? userId;
+  final String loginType;
 
-  const CartScreen({super.key, required this.userId});
+  const CartScreen({super.key, required this.userId, required this.loginType});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -21,13 +22,47 @@ class _CartScreenState extends State<CartScreen> {
   final ProductService _productService = ProductService();
 
   static const Color darkOrangeColor = Color(0xFFF57C00);
+
   static const Color greenColor = Color(0xFF4CAF50);
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      final cartProvider = context.read<CartProvider>();
+
+      debugPrint(
+        'CartScreen loginType: '
+        '${widget.loginType}',
+      );
+
+      debugPrint(
+        'CartScreen userId: '
+        '${widget.userId}',
+      );
+
+      if (widget.loginType == 'dummyjson' &&
+          widget.userId != null &&
+          widget.userId! > 0) {
+        cartProvider.loadCartFromApi(widget.userId!);
+      } else {
+        cartProvider.prepareFirebaseCart();
+      }
+    });
+  }
 
   Future<void> _openProductDetails(int productId) async {
     try {
       final Product product = await _productService.fetchProductById(productId);
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       Navigator.push(
         context,
@@ -37,45 +72,52 @@ class _CartScreenState extends State<CartScreen> {
         ),
       );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to load product details.')),
+        const SnackBar(
+          content: Text(
+            'Unable to load Product details. Please try again later.',
+          ),
+        ),
       );
     }
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Cart'), centerTitle: true),
+      body: SafeArea(
+        top: false,
+        child: Consumer<CartProvider>(
+          builder: (context, cartProvider, child) {
+            final items = cartProvider.items;
 
-      child: Consumer<CartProvider>(
-        builder: (context, cartProvider, child) {
-          final items = cartProvider.items;
+            if (cartProvider.isLoading || !cartProvider.isLoaded) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (items.isEmpty) {
-            return _buildEmptyCart();
-          }
+            if (items.isEmpty) {
+              return _buildEmptyCart();
+            }
 
-          return ListView(
-            padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 10.h),
-
-            children: [
-              ...items.map((item) => _buildCartItem(item, cartProvider)),
-
-              SizedBox(height: 4.h),
-
-              _buildOrderSummary(cartProvider),
-
-              SizedBox(height: 10.h),
-
-              _buildConfirmButton(cartProvider),
-
-              SizedBox(height: 10.h),
-            ],
-          );
-        },
+            return ListView(
+              padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 10.h),
+              children: [
+                ...items.map((item) => _buildCartItem(item, cartProvider)),
+                SizedBox(height: 4.h),
+                _buildOrderSummary(cartProvider),
+                SizedBox(height: 10.h),
+                _buildConfirmButton(cartProvider),
+                SizedBox(height: 10.h),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

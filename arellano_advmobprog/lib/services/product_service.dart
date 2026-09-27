@@ -7,15 +7,14 @@ import '../models/cart.dart';
 import '../models/product_model.dart';
 
 class ProductService {
-  static const int cartId = 1;
-
   Future<List<Product>> fetchAllProducts() async {
     final response = await http.get(Uri.parse('$host/products?limit=0'));
 
     if (response.statusCode != 200) {
       throw Exception(
         'Failed to load products. '
-        'Status code: ${response.statusCode}',
+        'Status code: '
+        '${response.statusCode}',
       );
     }
 
@@ -30,11 +29,17 @@ class ProductService {
 
   Future<List<Product>> fetchProductsByCategory(String category) async {
     final response = await http.get(
-      Uri.parse('$host/products/category/$category'),
+      Uri.parse(
+        '$host/products/category/'
+        '$category',
+      ),
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to load category: $category');
+      throw Exception(
+        'Failed to load category: '
+        '$category',
+      );
     }
 
     final Map<String, dynamic> data = json.decode(response.body);
@@ -69,9 +74,7 @@ class ProductService {
 
           return '';
         })
-        .where((category) {
-          return category.isNotEmpty;
-        })
+        .where((category) => category.isNotEmpty)
         .toList();
   }
 
@@ -79,7 +82,10 @@ class ProductService {
     final response = await http.get(Uri.parse('$host/products/$productId'));
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to load product $productId');
+      throw Exception(
+        'Failed to load product '
+        '$productId',
+      );
     }
 
     final Map<String, dynamic> data = json.decode(response.body);
@@ -87,16 +93,22 @@ class ProductService {
     return Product.fromJson(data);
   }
 
-  Future<Cart> fetchCart() async {
-    final response = await http.get(Uri.parse('$host/carts/$cartId'));
+  Future<Cart?> fetchCartByUserId(int userId) async {
+    final response = await http.get(Uri.parse('$host/carts/user/$userId'));
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to load cart $cartId');
+      throw Exception('Unable to load user cart.');
     }
 
-    final Map<String, dynamic> data = json.decode(response.body);
+    final data = jsonDecode(response.body);
 
-    return Cart.fromJson(data);
+    final carts = data['carts'] as List<dynamic>? ?? [];
+
+    if (carts.isEmpty) {
+      return null;
+    }
+
+    return Cart.fromJson(Map<String, dynamic>.from(carts.first));
   }
 
   Future<Cart> fetchCartById(int id) async {
@@ -111,25 +123,8 @@ class ProductService {
     return Cart.fromJson(data);
   }
 
-  Future<List<Product>> fetchCartProducts() async {
-    final Cart cart = await fetchCart();
-
-    final List<Product> products = [];
-
-    for (final cartProduct in cart.products) {
-      try {
-        final product = await fetchProductById(cartProduct.id);
-
-        products.add(product);
-      } catch (_) {
-        // Skip products that cannot be loaded.
-      }
-    }
-
-    return products;
-  }
-
   Future<Cart> addToCart({
+    required int cartId,
     required int productId,
     required int quantity,
   }) async {

@@ -1,11 +1,13 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
-import '../models/user.dart';
-import '../services/user_service.dart';
-
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+
+import '../models/user.dart' as user_model;
+import '../services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,12 +20,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
   final ImagePicker _imagePicker = ImagePicker();
 
-  String _profileImage = '';
-
-  bool _isLoading = true;
+  String _profileImagePath = '';
+  String _profileImageUrl = '';
   String _loginType = '';
 
-  User? _dummyUser;
+  bool _isLoading = true;
+
+  user_model.User? _dummyUser;
 
   @override
   void initState() {
@@ -31,69 +34,340 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
   }
 
-// Enhancement 3: Profile Screen
-// • Fetch user data via UserService().getUserData().
-// • Show user details depending on the LoginType ().
-// • Allow update username, change password, delete account.
-// • Include Logout in settings → back to login.
   Future<void> _loadProfile() async {
-    final loginType = await _userService.getLoginType();
-
-    final profileImage = await _userService.getProfileImage();
-
-    User? dummyUser;
-
-    if (loginType == 'dummyjson') {
-      dummyUser = await _userService.getUser();
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _profileImagePath = '';
+        _profileImageUrl = '';
+        _dummyUser = null;
+      });
     }
 
-    if (!mounted) return;
+    try {
+      final loginType = await _userService.getLoginType();
 
-    setState(() {
-      _loginType = loginType;
-      _dummyUser = dummyUser;
-      _profileImage = profileImage;
-      _isLoading = false;
-    });
+      final localImagePath = await _userService.getProfileImage();
+
+      String imageUrl = '';
+      user_model.User? dummyUser;
+
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      if (loginType == 'firebase' && firebaseUser != null) {
+        final document = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(firebaseUser.uid)
+            .get();
+
+        imageUrl =
+            document.data()?['image']?.toString() ??
+            firebaseUser.photoURL ??
+            '';
+      }
+
+      if (loginType == 'dummyjson') {
+        dummyUser = await _userService.getUser();
+
+        if (localImagePath.isEmpty) {
+          imageUrl = dummyUser.image;
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _loginType = loginType;
+        _dummyUser = dummyUser;
+        _profileImagePath = localImagePath;
+        _profileImageUrl = imageUrl;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to load profile: $error')));
+    }
   }
 
-  Future<void> _pickProfileImage() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
+  ImageProvider? get _profileImageProvider {
+    if (_profileImagePath.isNotEmpty) {
+      final imageFile = File(_profileImagePath);
+
+      if (imageFile.existsSync()) {
+        return FileImage(imageFile);
+      }
+    }
+
+    if (_profileImageUrl.isNotEmpty) {
+      return NetworkImage(_profileImageUrl);
+    }
+
+    return null;
+  }
+
+  Future<void> _showPhotoOptions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from gallery'),
+                subtitle: const Text('Visible only on this device'),
+                onTap: () {
+                  Navigator.pop(sheetContext, 'local');
+                },
+              ),
+              if (_loginType == 'firebase')
+                ListTile(
+                  leading: const Icon(Icons.link),
+                  title: const Text('Use image URL'),
+                  subtitle: const Text('Visible on profile and chat'),
+                  onTap: () {
+                    Navigator.pop(sheetContext, 'url');
+                  },
+                ),
+              if (_profileImagePath.isNotEmpty || _profileImageUrl.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.red),
+                  title: const Text(
+                    'Remove photo',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext, 'remove');
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
 
-    if (image == null) {
+    if (!mounted || action == null) {
       return;
     }
 
-    await _userService.saveProfileImage(image.path);
-
-    if (!mounted) return;
-
-    setState(() {
-      _profileImage = image.path;
-    });
+    if (action == 'local') {
+      await _pickLocalPhoto();
+    } else if (action == 'url') {
+      await _showImageUrlDialog();
+    } else if (action == 'remove') {
+      await _removeProfilePhoto();
+    }
   }
 
-  Future<void> _logout() async {
-    if (_loginType == 'firebase') {
-      await _userService.signOut();
-    } else {
-      await _userService.logoutUser();
+  Future<void> _pickLocalPhoto() async {
+    try {
+      final image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1000,
+      );
+
+      if (image == null || !mounted) {
+        return;
+      }
+
+      await _userService.saveProfileImage(image.path);
+
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      if (_loginType == 'firebase' && firebaseUser != null) {
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(firebaseUser.uid)
+            .set({'image': ''}, SetOptions(merge: true));
+
+        await firebaseUser.updatePhotoURL(null);
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _profileImagePath = image.path;
+        _profileImageUrl = '';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Local profile photo updated.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to select photo: $error')));
+    }
+  }
+
+  Future<void> _showImageUrlDialog() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+
+    if (firebaseUser == null) {
+      return;
     }
 
-    if (!mounted) return;
+    final controller = TextEditingController(text: _profileImageUrl);
 
-    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+    final imageUrl = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Use Image URL'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              labelText: 'Image URL',
+              hintText: 'https://example.com/photo.jpg',
+              prefixIcon: Icon(Icons.link),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final value = controller.text.trim();
+
+                final uri = Uri.tryParse(value);
+
+                final validUrl =
+                    uri != null &&
+                    (uri.scheme == 'http' || uri.scheme == 'https');
+
+                if (!validUrl) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('Enter a valid image URL.')),
+                  );
+
+                  return;
+                }
+
+                Navigator.pop(dialogContext, value);
+              },
+              child: const Text('Use Photo'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (imageUrl == null || !mounted) {
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(firebaseUser.uid)
+          .set({'image': imageUrl}, SetOptions(merge: true));
+
+      await firebaseUser.updatePhotoURL(imageUrl);
+
+      await _userService.saveProfileImage('');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _profileImagePath = '';
+        _profileImageUrl = imageUrl;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Online profile photo updated.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to update photo: $error')));
+    }
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    try {
+      await _userService.saveProfileImage('');
+
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      if (_loginType == 'firebase' && firebaseUser != null) {
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(firebaseUser.uid)
+            .set({'image': ''}, SetOptions(merge: true));
+
+        await firebaseUser.updatePhotoURL(null);
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _profileImagePath = '';
+        _profileImageUrl = '';
+
+        if (_loginType == 'dummyjson' && _dummyUser != null) {
+          _profileImageUrl = _dummyUser!.image;
+        }
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo removed.')));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to remove photo: $error')));
+    }
   }
 
   Future<void> _showUpdateUsername() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+
+    if (firebaseUser == null) {
+      return;
+    }
+
     final controller = TextEditingController(
-      text: _userService.currentFirebaseUser?.displayName ?? '',
+      text: firebaseUser.displayName ?? '',
     );
 
-    await showDialog(
+    final newUsername = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
@@ -113,38 +387,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 final username = controller.text.trim();
 
                 if (username.isEmpty) {
                   return;
                 }
 
-                try {
-                  await _userService.updateUsername(username: username);
-
-                  if (!dialogContext.mounted) {
-                    return;
-                  }
-
-                  Navigator.pop(dialogContext);
-
-                  if (!mounted) return;
-
-                  setState(() {});
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Username updated.')),
-                  );
-                } catch (e) {
-                  if (!dialogContext.mounted) {
-                    return;
-                  }
-
-                  ScaffoldMessenger.of(
-                    dialogContext,
-                  ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
-                }
+                Navigator.pop(dialogContext, username);
               },
               child: const Text('Update'),
             ),
@@ -152,15 +402,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+
+    if (newUsername == null || !mounted) {
+      return;
+    }
+
+    try {
+      await _userService.updateUsername(username: newUsername);
+
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(firebaseUser.uid)
+          .set({'username': newUsername}, SetOptions(merge: true));
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {});
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Username updated.')));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Update failed: $error')));
+    }
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
+  String? _validatePassword(String value) {
+    if (value.isEmpty) {
       return 'Password is required';
     }
 
     if (value.length < 8) {
-      return 'Password must be at least 8 characters';
+      return 'Password must be at least '
+          '8 characters';
     }
 
     if (!RegExp(r'[A-Z]').hasMatch(value)) {
@@ -193,36 +475,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await showDialog<void>(
       context: context,
-      barrierDismissible: !isChanging,
+      barrierDismissible: false,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              title: Row(
-                children: [
-                  const Icon(Icons.lock_reset, color: Color(0xFF4CAF50)),
-                  SizedBox(width: 10.w),
-                  const Text('Change Password'),
-                ],
-              ),
+              title: const Text('Change Password'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'Enter your current password '
-                      'before creating a new one.',
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-
-                    SizedBox(height: 20.h),
-
                     TextField(
                       controller: currentController,
                       obscureText: obscureCurrent,
@@ -238,25 +500,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                           icon: Icon(
                             obscureCurrent
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
-
-                    SizedBox(height: 16.h),
-
-                    TextFormField(
+                    SizedBox(height: 15.h),
+                    TextField(
                       controller: newController,
                       obscureText: obscureNew,
+                      enabled: !isChanging,
                       decoration: InputDecoration(
                         labelText: 'New Password',
                         hintText: 'Example: User123!',
-                        prefixIcon: const Icon(Icons.lock_reset_outlined),
+                        prefixIcon: const Icon(Icons.lock_reset),
                         suffixIcon: IconButton(
                           onPressed: () {
                             setDialogState(() {
@@ -265,18 +524,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                           icon: Icon(
                             obscureNew
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
+                        border: const OutlineInputBorder(),
                       ),
-                      validator: _validatePassword,
                     ),
-
-                    SizedBox(height: 16.h),
                   ],
                 ),
               ),
@@ -285,13 +539,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: isChanging
                       ? null
                       : () {
-                          FocusScope.of(dialogContext).unfocus();
-
-                          Navigator.of(dialogContext).pop();
+                          Navigator.pop(dialogContext);
                         },
                   child: const Text('Cancel'),
                 ),
-
                 ElevatedButton(
                   onPressed: isChanging
                       ? null
@@ -301,10 +552,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final newPassword = newController.text;
 
                           if (currentPassword.isEmpty) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text('Enter your current password.'),
-                              ),
+                            _showDialogMessage(
+                              dialogContext,
+                              'Enter your current '
+                              'password.',
                             );
 
                             return;
@@ -313,26 +564,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final passwordError = _validatePassword(newPassword);
 
                           if (passwordError != null) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              SnackBar(content: Text(passwordError)),
-                            );
+                            _showDialogMessage(dialogContext, passwordError);
 
                             return;
                           }
 
                           if (currentPassword == newPassword) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'New password must be different from your current password.',
-                                ),
-                              ),
+                            _showDialogMessage(
+                              dialogContext,
+                              'The new password must '
+                              'be different.',
                             );
 
                             return;
                           }
-
-                          FocusScope.of(dialogContext).unfocus();
 
                           setDialogState(() {
                             isChanging = true;
@@ -348,7 +593,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               return;
                             }
 
-                            Navigator.of(dialogContext).pop();
+                            Navigator.pop(dialogContext);
 
                             if (!mounted) {
                               return;
@@ -356,10 +601,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Password updated successfully.'),
+                                content: Text('Password updated.'),
                               ),
                             );
-                          } catch (e) {
+                          } catch (error) {
                             if (!dialogContext.mounted) {
                               return;
                             }
@@ -368,42 +613,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               isChanging = false;
                             });
 
-                            String message = 'Unable to change password.';
-
-                            final error = e.toString();
-
-                            if (error.contains('invalid-credential') ||
-                                error.contains('wrong-password') ||
-                                error.contains(
-                                  'auth credential is incorrect',
-                                )) {
-                              message = 'Your current password is incorrect.';
-                            } else if (error.contains('weak-password')) {
-                              message = 'Your new password is too weak.';
-                            } else if (error.contains(
-                              'requires-recent-login',
-                            )) {
-                              message =
-                                  'Please sign in again before changing your password.';
-                            }
-
-                            ScaffoldMessenger.of(
+                            _showDialogMessage(
                               dialogContext,
-                            ).showSnackBar(SnackBar(content: Text(message)));
+                              _passwordErrorMessage(error),
+                            );
                           }
                         },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
-                    foregroundColor: Colors.white,
-                  ),
                   child: isChanging
-                      ? SizedBox(
-                          width: 18.w,
-                          height: 18.w,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Change'),
                 ),
@@ -413,25 +633,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
 
-    // Do not manually dispose these here.
-    //
-    // The dialog/keyboard may still be completing its
-    // removal animation when showDialog returns on some
-    // Android devices. Disposing them here can result in
-    // lifecycle errors during that transition.
+  void _showDialogMessage(BuildContext dialogContext, String message) {
+    ScaffoldMessenger.of(
+      dialogContext,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _passwordErrorMessage(Object error) {
+    final message = error.toString();
+
+    if (message.contains('invalid-credential') ||
+        message.contains('wrong-password')) {
+      return 'Your current password is incorrect.';
+    }
+
+    if (message.contains('weak-password')) {
+      return 'Your new password is too weak.';
+    }
+
+    if (message.contains('requires-recent-login')) {
+      return 'Please sign in again before '
+          'changing your password.';
+    }
+
+    return 'Unable to change password.';
   }
 
   Future<void> _showDeleteAccount() async {
-    final user = _userService.currentFirebaseUser;
+    final firebaseUser = FirebaseAuth.instance.currentUser;
 
-    if (user == null || user.email == null) {
+    if (firebaseUser == null || firebaseUser.email == null) {
       return;
     }
 
-    final passwordController = TextEditingController();
+    final controller = TextEditingController();
 
-    await showDialog(
+    final password = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
@@ -440,9 +679,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('This action cannot be undone.'),
-              SizedBox(height: 16.h),
+              SizedBox(height: 15.h),
               TextField(
-                controller: passwordController,
+                controller: controller,
                 obscureText: true,
                 decoration: const InputDecoration(
                   labelText: 'Current Password',
@@ -459,46 +698,121 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
-                if (passwordController.text.isEmpty) {
+              onPressed: () {
+                if (controller.text.isEmpty) {
                   return;
                 }
 
-                try {
-                  await _userService.deleteAccount(
-                    email: user.email!,
-                    password: passwordController.text,
-                  );
-
-                  if (!dialogContext.mounted) {
-                    return;
-                  }
-
-                  Navigator.pop(dialogContext);
-
-                  if (!mounted) return;
-
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/signin',
-                    (route) => false,
-                  );
-                } catch (e) {
-                  if (!dialogContext.mounted) {
-                    return;
-                  }
-
-                  ScaffoldMessenger.of(
-                    dialogContext,
-                  ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
-                }
+                Navigator.pop(dialogContext, controller.text);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Delete'),
             ),
           ],
         );
       },
     );
+
+    if (password == null || !mounted) {
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(firebaseUser.uid)
+          .delete();
+
+      await _userService.deleteAccount(
+        email: firebaseUser.email!,
+        password: password,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete failed: $error')));
+    }
+  }
+
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.logout, color: Color(0xFFF57C00)),
+              SizedBox(width: 10),
+              Text('Confirm Logout'),
+            ],
+          ),
+          content: const Text('Are you sure you want to log out?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF57C00),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Log Out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true && mounted) {
+      await _logout();
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      if (_loginType == 'firebase') {
+        await _userService.signOut();
+      } else {
+        await _userService.logoutUser();
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Logout failed: $error')));
+    }
   }
 
   @override
@@ -511,7 +825,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return _firebaseProfile();
     }
 
-    if (_dummyUser != null) {
+    if (_loginType == 'dummyjson' && _dummyUser != null) {
       return _dummyJsonProfile(_dummyUser!);
     }
 
@@ -520,48 +834,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _dummyJsonProfile(User user) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        children: [
-          SizedBox(height: 20.h),
-
-          CircleAvatar(
+  Widget _profileAvatar() {
+    return Stack(
+      children: [
+        Container(
+          padding: EdgeInsets.all(4.r),
+          decoration: const BoxDecoration(
+            color: Color(0xFF4CAF50),
+            shape: BoxShape.circle,
+          ),
+          child: CircleAvatar(
             radius: 55.r,
-            backgroundImage: user.image.isNotEmpty
-                ? NetworkImage(user.image)
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            backgroundImage: _profileImageProvider,
+            child: _profileImageProvider == null
+                ? Icon(Icons.person, size: 55.sp)
                 : null,
-            child: user.image.isEmpty ? Icon(Icons.person, size: 55.sp) : null,
           ),
-
-          SizedBox(height: 16.h),
-
-          Text(
-            '${user.firstName} '
-            '${user.lastName}',
-            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+        ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Material(
+            color: const Color(0xFFF57C00),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: _showPhotoOptions,
+              customBorder: const CircleBorder(),
+              child: Padding(
+                padding: EdgeInsets.all(9.r),
+                child: Icon(Icons.edit, size: 19.sp, color: Colors.white),
+              ),
+            ),
           ),
-
-          SizedBox(height: 5.h),
-
-          Text('@${user.username}', style: TextStyle(fontSize: 14.sp)),
-
-          SizedBox(height: 25.h),
-
-          _profileItem(Icons.email_outlined, 'Email', user.email),
-
-          _profileItem(Icons.person_outline, 'Gender', user.gender),
-
-          _profileItem(Icons.badge_outlined, 'User ID', user.id.toString()),
-
-          _profileItem(Icons.storage_outlined, 'Login Type', 'DummyJSON'),
-
-          SizedBox(height: 25.h),
-
-          _logoutButton(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -569,181 +876,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = _userService.currentFirebaseUser;
 
     if (user == null) {
-      return Center(
-        child: Text(
-          'No Firebase user found',
-          style: TextStyle(fontSize: 16.sp),
-        ),
-      );
+      return const Center(child: Text('No Firebase user found'));
     }
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(20.w),
       child: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(22.r),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(22.r),
-            ),
-            child: Column(
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(4.r),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF4CAF50),
-                      ),
-                      child: CircleAvatar(
-                        radius: 55.r,
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        backgroundImage: _profileImage.isNotEmpty
-                            ? FileImage(File(_profileImage))
-                            : null,
-                        child: _profileImage.isEmpty
-                            ? Icon(Icons.person, size: 55.sp)
-                            : null,
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Material(
-                        color: const Color(0xFFF57C00),
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          onTap: _pickProfileImage,
-                          customBorder: const CircleBorder(),
-                          child: Padding(
-                            padding: EdgeInsets.all(9.r),
-                            child: Icon(
-                              Icons.camera_alt_rounded,
-                              size: 19.sp,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 16.h),
-
-                Text(
-                  user.displayName ?? 'Firebase User',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                SizedBox(height: 4.h),
-
-                Text(
-                  user.email ?? '',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-
-                SizedBox(height: 12.h),
-
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFA000).withAlpha(25),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.local_fire_department_rounded,
-                        size: 16,
-                        color: Color(0xFFF57C00),
-                      ),
-                      SizedBox(width: 5.w),
-                      Text(
-                        'Firebase Account',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFF57C00),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          _profileHeader(
+            name: user.displayName ?? 'Firebase User',
+            email: user.email ?? '',
+            accountType: 'Firebase Account',
           ),
-
           SizedBox(height: 24.h),
-
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Account Information',
-              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold),
-            ),
-          ),
-
+          _sectionTitle('Account Information'),
           SizedBox(height: 12.h),
-
           _profileItem(
             Icons.alternate_email,
             'Username',
             user.displayName ?? '',
           ),
-
           _profileItem(Icons.email_outlined, 'Email Address', user.email ?? ''),
           _profileItem(Icons.badge_outlined, 'Firebase UID', user.uid),
           _profileItem(Icons.local_fire_department, 'Login Type', 'Firebase'),
-
           SizedBox(height: 16.h),
-
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Account Settings',
-              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold),
-            ),
-          ),
-
+          _sectionTitle('Account Settings'),
           SizedBox(height: 12.h),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _showUpdateUsername,
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text('Update Username'),
-            ),
+          _fullButton(
+            icon: Icons.edit_outlined,
+            text: 'Update Username',
+            onPressed: _showUpdateUsername,
           ),
-
           SizedBox(height: 10.h),
-
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _showChangePassword,
-              icon: const Icon(Icons.lock_reset),
-              label: const Text('Change Password'),
-            ),
+          _fullButton(
+            icon: Icons.lock_reset,
+            text: 'Change Password',
+            onPressed: _showChangePassword,
           ),
-
           SizedBox(height: 10.h),
-
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -752,11 +922,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
               label: const Text('Delete Account'),
             ),
           ),
-
           SizedBox(height: 20.h),
-
           _logoutButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _dummyJsonProfile(user_model.User user) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(20.w),
+      child: Column(
+        children: [
+          _profileHeader(
+            name: '${user.firstName} ${user.lastName}',
+            email: user.email,
+            accountType: 'DummyJSON Account',
+          ),
+          SizedBox(height: 24.h),
+          _sectionTitle('Account Information'),
+          SizedBox(height: 12.h),
+          _profileItem(Icons.alternate_email, 'Username', user.username),
+          _profileItem(Icons.email_outlined, 'Email Address', user.email),
+          _profileItem(Icons.person_outline, 'Gender', user.gender),
+          _profileItem(Icons.badge_outlined, 'User ID', user.id.toString()),
+          _profileItem(Icons.storage_outlined, 'Login Type', 'DummyJSON'),
+          SizedBox(height: 20.h),
+          _logoutButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _profileHeader({
+    required String name,
+    required String email,
+    required String accountType,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(22.r),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(22.r),
+      ),
+      child: Column(
+        children: [
+          _profileAvatar(),
+          SizedBox(height: 16.h),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            email,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFA000).withAlpha(25),
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Text(
+              accountType,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFF57C00),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _fullButton({
+    required IconData icon,
+    required String text,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(text),
       ),
     );
   }
@@ -766,7 +1035,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: double.infinity,
       height: 50.h,
       child: ElevatedButton.icon(
-        onPressed: _logout,
+        onPressed: _confirmLogout,
         icon: const Icon(Icons.logout),
         label: const Text('Log Out'),
         style: ElevatedButton.styleFrom(

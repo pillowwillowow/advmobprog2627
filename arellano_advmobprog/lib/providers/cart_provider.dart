@@ -26,13 +26,22 @@ class CartProvider extends ChangeNotifier {
   bool _isLoaded = false;
   bool _isLoading = false;
 
+  int? _loadedUserId;
+
+  String _cartSource = '';
+
   List<CartItem> get items => List.unmodifiable(_items);
 
   bool get isLoaded => _isLoaded;
+
   bool get isLoading => _isLoading;
 
-  Future<void> loadCartFromApi() async {
-    if (_isLoaded || _isLoading) {
+  Future<void> loadCartFromApi(int userId) async {
+    if (_isLoading) {
+      return;
+    }
+
+    if (_isLoaded && _loadedUserId == userId && _cartSource == 'dummyjson') {
       return;
     }
 
@@ -40,13 +49,24 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // ALWAYS fetch Cart 1.
-      final cart = await _productService.fetchCartById(1);
+      final cart = await _productService.fetchCartByUserId(userId);
 
-      // Clear local list first.
       _items.clear();
 
-      // Load every product that belongs to Cart 1.
+      _cartSource = 'dummyjson';
+      _loadedUserId = userId;
+
+      if (cart == null) {
+        _isLoaded = true;
+
+        debugPrint(
+          'No cart found for '
+          'user $userId.',
+        );
+
+        return;
+      }
+
       for (final cartProduct in cart.products) {
         try {
           final product = await _productService.fetchProductById(
@@ -59,22 +79,53 @@ class CartProvider extends ChangeNotifier {
         } catch (error) {
           debugPrint(
             'Failed to load product '
-            '${cartProduct.id}: $error',
+            '${cartProduct.id}: '
+            '$error',
           );
         }
       }
 
       _isLoaded = true;
 
-      debugPrint('Cart 1 loaded successfully.');
+      debugPrint(
+        'Cart for user $userId '
+        'loaded successfully.',
+      );
 
-      debugPrint('Products in local cart: ${_items.length}');
+      debugPrint(
+        'Products in cart: '
+        '${_items.length}',
+      );
     } catch (error) {
-      debugPrint('Failed to load Cart 1: $error');
+      _items.clear();
+
+      _loadedUserId = userId;
+      _cartSource = 'dummyjson';
+      _isLoaded = true;
+
+      debugPrint(
+        'Failed to load cart for '
+        'user $userId: $error',
+      );
     } finally {
       _isLoading = false;
+
       notifyListeners();
     }
+  }
+
+  void prepareFirebaseCart() {
+    if (_cartSource == 'dummyjson') {
+      _items.clear();
+    }
+
+    _cartSource = 'firebase';
+    _loadedUserId = null;
+
+    _isLoaded = true;
+    _isLoading = false;
+
+    notifyListeners();
   }
 
   void addToCart(Product product) {
@@ -83,13 +134,15 @@ class CartProvider extends ChangeNotifier {
     );
 
     if (existingIndex != -1) {
-      // Product already exists.
-      // Increase quantity by 1.
       _items[existingIndex].quantity++;
     } else {
-      // Product does not exist.
       _items.add(CartItem(product: product, quantity: 1));
     }
+
+    debugPrint(
+      'Added ${product.title}. '
+      'Cart items: ${_items.length}',
+    );
 
     notifyListeners();
   }
@@ -144,6 +197,12 @@ class CartProvider extends ChangeNotifier {
 
   void clearCart() {
     _items.clear();
+
+    _loadedUserId = null;
+    _cartSource = '';
+
+    _isLoaded = false;
+    _isLoading = false;
 
     notifyListeners();
   }

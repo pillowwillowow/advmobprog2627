@@ -57,7 +57,6 @@ class DefaultFirebaseOptions {
     projectId: 'fir-setup-4d5ce',
     storageBucket: 'fir-setup-4d5ce.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCzHQlx7U-S5q35puGb0eTECKC0xKvjJiI',
     appId: '1:863822323375:ios:f67faedcb12f431cc23e5a',
@@ -66,7 +65,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'fir-setup-4d5ce.firebasestorage.app',
     iosBundleId: 'com.example.arellanoAdvmobprog',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCzHQlx7U-S5q35puGb0eTECKC0xKvjJiI',
     appId: '1:863822323375:ios:f67faedcb12f431cc23e5a',

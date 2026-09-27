@@ -1,4 +1,3 @@
-// packages
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -11,7 +10,6 @@ import 'firebase_options.dart';
 import 'providers/theme_provider.dart';
 import 'providers/cart_provider.dart';
 
-// screens
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
@@ -38,34 +36,36 @@ class ArellanoAdvMobProg extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(
-          create: (_) => CartProvider()..loadCartFromApi(),
-        ),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
-      child: ScreenUtilInit(
-        designSize: const Size(412, 715),
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (context, child) {
-          final themeModel = context.watch<ThemeProvider>();
 
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'E-Commerce App',
-            theme: themeModel.lightTheme,
-            darkTheme: themeModel.darkTheme,
-            themeMode: themeModel.isDark ? ThemeMode.dark : ThemeMode.light,
-            initialRoute: '/',
-            routes: {
-              '/': (context) => const SplashScreen(),
-              '/signin': (context) => const SigninScreen(),
-              '/signup': (context) => const SignupScreen(),
-              '/home': (context) => const HomeScreen(),
-              '/settings': (context) => const SettingsScreen(),
-            },
-          );
-        },
-      ),
+      // Creates a new context below the providers.
+      builder: (context, child) {
+        return ScreenUtilInit(
+          designSize: const Size(412, 715),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
+            final themeModel = context.watch<ThemeProvider>();
+
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'E-Commerce App',
+              theme: themeModel.lightTheme,
+              darkTheme: themeModel.darkTheme,
+              themeMode: themeModel.isDark ? ThemeMode.dark : ThemeMode.light,
+              initialRoute: '/',
+              routes: {
+                '/': (context) => const SplashScreen(),
+                '/signin': (context) => const SigninScreen(),
+                '/signup': (context) => const SignupScreen(),
+                '/home': (context) => const HomeScreen(),
+                '/settings': (context) => const SettingsScreen(),
+              },
+            );
+          },
+        );
+      },
     );
   }
 }
